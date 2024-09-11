@@ -1,13 +1,25 @@
 const { sleep } = require("telegram/Helpers");
-const UserBot = require("../telegram");
+const UserBotManager = require("../telegram/UserBotManager");
 
 class ChatsService {
+  constructor() {
+    this.currentAccountIndex = 0;
+  }
+
+  getNextAccount() {
+    const client = UserBotManager.getClient(this.currentAccountIndex);
+    this.currentAccountIndex =
+      (this.currentAccountIndex + 1) % UserBotManager.clients.length;
+    return client;
+  }
+
   async getChatHistory({ chat_id, chat_url }) {
-    await UserBot.joinToChat(chat_url);
+    const client = this.getNextAccount();
+    await UserBotManager.joinToChat(client, chat_url);
     await sleep(1000);
-    const messages = await UserBot.getChatHistory(chat_id);
+    const messages = await UserBotManager.getChatHistory(client, chat_id);
     await sleep(1000);
-    await UserBot.leaveChat(chat_id);
+    await UserBotManager.leaveChat(client, chat_id);
 
     return { chat_id, messages };
   }

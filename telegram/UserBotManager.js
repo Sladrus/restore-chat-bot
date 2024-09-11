@@ -1,47 +1,47 @@
+const { StoreSession } = require("telegram/sessions");
 const { TelegramClient, Api } = require("telegram");
 const input = require("input");
-const { NewMessage } = require("telegram/events");
 
-require("dotenv").config();
-
-class UserBot {
+class UserBotManager {
   constructor() {
-    this.client = null;
+    this.clients = [];
   }
 
-  async initClient(storeSession, apiId, apiHash) {
-    this.client = new TelegramClient(storeSession, Number(apiId), apiHash, {
+  getClient(index) {
+    return this.clients[index];
+  }
+
+  async addClient(storeSessionPath, apiId, apiHash) {
+    const storeSession = new StoreSession(storeSessionPath);
+    const client = new TelegramClient(storeSession, Number(apiId), apiHash, {
       connectionRetries: 5,
     });
-    await this.client.start({
-      phoneNumber: async () => await input.text("Please enter your number: "),
-      password: async () => await input.text("Please enter your password: "),
-      phoneCode: async () =>
-        await input.text("Please enter the code you received: "),
+    await client.start({
+      phoneNumber: async () => await input.text("Введите номер: "),
+      password: async () => await input.text("Введите пароль: "),
+      phoneCode: async () => await input.text("Введите код: "),
       onError: (err) => console.log(err),
     });
-    console.log("You should now be connected.");
-    this.client.session.save();
-    console.log("Session saved.");
+    await client.connect();
+    console.log("Аккаунт подключен.");
+    this.clients.push(client);
   }
 
-  async joinToChat(chat_url) {
+  async joinToChat(client, chat_url) {
     try {
       const hash = chat_url.split("/").pop().replace("+", "");
 
-      await this.client.invoke(
-        new Api.messages.ImportChatInvite({ hash: hash })
-      );
+      await client.invoke(new Api.messages.ImportChatInvite({ hash: hash }));
     } catch (error) {
       console.error("Failed to join chat:", error);
     }
   }
 
-  async leaveChat(chat_id) {
+  async leaveChat(client, chat_id) {
     try {
-      const chat = await this.client.getEntity(chat_id);
+      const chat = await client.getEntity(chat_id);
 
-      await this.client.invoke(
+      await client.invoke(
         new Api.channels.LeaveChannel({
           channel: chat,
         })
@@ -51,9 +51,9 @@ class UserBot {
     }
   }
 
-  async getChatHistory(chat_id) {
+  async getChatHistory(client, chat_id) {
     try {
-      const chat = await this.client.getEntity(chat_id);
+      const chat = await client.getEntity(chat_id);
       const messages = [];
       const userCache = {};
       let offsetId = 0;
@@ -61,7 +61,7 @@ class UserBot {
       let moreMessages = true;
 
       while (moreMessages) {
-        const history = await this.client.getMessages(chat, {
+        const history = await client.getMessages(chat, {
           limit: limit,
           offsetId: offsetId,
         });
@@ -89,9 +89,7 @@ class UserBot {
               fullname = user.fullname;
             } else {
               try {
-                const fetchedUser = await this.client.getEntity(
-                  message.senderId
-                );
+                const fetchedUser = await client.getEntity(message.senderId);
                 username = fetchedUser?.username || null;
                 fullname =
                   fetchedUser?.firstName + " " + (fetchedUser?.lastName || "");
@@ -148,4 +146,4 @@ class UserBot {
   }
 }
 
-module.exports = new UserBot();
+module.exports = new UserBotManager();
