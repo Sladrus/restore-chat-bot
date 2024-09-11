@@ -59,6 +59,7 @@ class UserBotManager {
       let offsetId = 0;
       const limit = 10;
       let moreMessages = true;
+      let title = null;
 
       while (moreMessages) {
         const history = await client.getMessages(chat, {
@@ -119,6 +120,7 @@ class UserBotManager {
           }
 
           text = type === "photo" ? "Медиа файл" : text;
+          title = title ? title : message?.action?.title;
 
           messages.push({
             message_id: message.id,
@@ -138,8 +140,8 @@ class UserBotManager {
           moreMessages = false;
         }
       }
-
-      return messages;
+      console.log(title);
+      return { title, messages };
     } catch (error) {
       console.error("Failed to get chat history:", error);
     }
