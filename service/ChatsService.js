@@ -17,14 +17,11 @@ class ChatsService {
     const client = this.getNextAccount();
     await UserBotManager.joinToChat(client, chat_url);
     await sleep(1000);
-    const { title, messages } = await UserBotManager.getChatHistory(
-      client,
-      chat_id
-    );
+    const data = await UserBotManager.getChatHistory(client, chat_id);
     await sleep(1000);
     await UserBotManager.leaveChat(client, chat_id);
 
-    return { chat_id, title, messages };
+    return { chat_id, title: data?.title, messages: data?.messages };
   }
 }
 
