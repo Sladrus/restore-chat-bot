@@ -140,7 +140,7 @@ class UserBotManager {
           moreMessages = false;
         }
       }
-      console.log(title);
+      console.log(title, messages?.length);
       return { title, messages };
     } catch (error) {
       console.error("Failed to get chat history:", error);
